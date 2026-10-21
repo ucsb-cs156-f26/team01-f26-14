@@ -23,4 +23,4 @@ repo_name: "TBD"
 repo: ucsb-cs156-f26/team01-f26-14
 owner: ucsb-cs156-f26
 repo_name: team01-f26-14
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"use-org-vars-for-dates","number":46,"title":"Pull START_DATE and END_DATE from org variables","url":"https://github.com/ucsb-cs156-f26/team01-f26-14/pull/46"},{"author":{"id":"U_kgDODgpWGw","is_bot":false,"login":"VishwathS","name":""},"headRefName":"vishwath-articles-get-by-id","number":45,"title":"Add Articles GET by ID endpoint and tests","url":"https://github.com/ucsb-cs156-f26/team01-f26-14/pull/45"}]
+pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"use-org-vars-for-dates","number":46,"title":"Pull START_DATE and END_DATE from org variables","url":"https://github.com/ucsb-cs156-f26/team01-f26-14/pull/46"}]
