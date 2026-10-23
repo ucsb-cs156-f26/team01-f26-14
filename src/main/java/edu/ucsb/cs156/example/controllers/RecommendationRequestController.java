@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -121,5 +124,26 @@ public class RecommendationRequestController extends ApiController {
     recommendationRequestRepository.save(request);
 
     return request;
+  }
+
+  /**
+   * Delete a single recommendation request.
+   *
+   * @param id the id of the recommendation request to delete
+   * @return a plain-text message indicating whether the record was deleted or not found
+   */
+  @Operation(summary = "Delete a single recommendation request by id")
+  @PreAuthorize("hasRole('ROLE_ADMIN')")
+  @DeleteMapping("")
+  public ResponseEntity<String> deleteRecommendationRequest(
+      @Parameter(name = "id", description = "ID of the recommendation request") @RequestParam
+          Long id) {
+
+    if (!recommendationRequestRepository.existsById(id)) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("record " + id + " not found");
+    }
+
+    recommendationRequestRepository.deleteById(id);
+    return ResponseEntity.ok("record " + id + " deleted");
   }
 }

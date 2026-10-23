@@ -6,6 +6,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -377,5 +378,58 @@ public class RecommendationRequestControllerTests extends ControllerTestCase {
     Map<String, Object> json = responseToJson(response);
     assertEquals("EntityNotFoundException", json.get("type"));
     assertEquals("RecommendationRequest with id 7 not found", json.get("message"));
+  }
+
+  // Tests for DELETE /api/RecommendationRequest?id=7
+
+  @Test
+  public void logged_out_users_cannot_delete() throws Exception {
+    mockMvc
+        .perform(delete("/api/RecommendationRequest").param("id", "7").with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void logged_in_regular_users_cannot_delete() throws Exception {
+    mockMvc
+        .perform(delete("/api/RecommendationRequest").param("id", "7").with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void an_admin_user_can_delete_a_recommendation_request() throws Exception {
+    when(recommendationRequestRepository.existsById(eq(7L))).thenReturn(true);
+
+    MvcResult response =
+        mockMvc
+            .perform(delete("/api/RecommendationRequest").param("id", "7").with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    verify(recommendationRequestRepository, times(1)).existsById(eq(7L));
+    verify(recommendationRequestRepository, times(1)).deleteById(eq(7L));
+
+    assertEquals("record 7 deleted", response.getResponse().getContentAsString());
+    assertEquals("text/plain;charset=UTF-8", response.getResponse().getContentType());
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void an_admin_user_cannot_delete_a_nonexistent_recommendation_request() throws Exception {
+    when(recommendationRequestRepository.existsById(eq(7L))).thenReturn(false);
+
+    MvcResult response =
+        mockMvc
+            .perform(delete("/api/RecommendationRequest").param("id", "7").with(csrf()))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    verify(recommendationRequestRepository, times(1)).existsById(eq(7L));
+    verify(recommendationRequestRepository, times(0)).deleteById(eq(7L));
+
+    assertEquals("record 7 not found", response.getResponse().getContentAsString());
+    assertEquals("text/plain;charset=UTF-8", response.getResponse().getContentType());
   }
 }
