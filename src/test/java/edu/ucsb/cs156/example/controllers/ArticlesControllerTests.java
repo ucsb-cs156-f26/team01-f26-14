@@ -1,14 +1,17 @@
 package edu.ucsb.cs156.example.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import edu.ucsb.cs156.example.ControllerTestCase;
@@ -19,10 +22,12 @@ import edu.ucsb.cs156.example.testconfig.TestConfig;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
@@ -231,5 +236,172 @@ public class ArticlesControllerTests extends ControllerTestCase {
     verify(articleRepository, times(1)).findById(2L);
 
     assertEquals(mapper.writeValueAsString(article), response.getResponse().getContentAsString());
+  }
+
+  // PUT /api/articles?id=... tests
+
+  @Test
+  public void logged_out_users_cannot_put() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/articles")
+                .param("id", "1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(csrf()))
+        .andExpect(status().is(403));
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void regular_users_cannot_put() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/articles")
+                .param("id", "1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(csrf()))
+        .andExpect(status().is(403));
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void admin_can_update_article() throws Exception {
+    Article existingArticle =
+        Article.builder()
+            .id(1L)
+            .title("Old Title")
+            .url("https://example.com/old")
+            .explanation("Old explanation")
+            .email("old@ucsb.edu")
+            .dateAdded(LocalDateTime.parse("2026-10-15T12:00:00"))
+            .build();
+
+    Article updatedArticle =
+        Article.builder()
+            .id(1L)
+            .title("New Title")
+            .url("https://example.com/new")
+            .explanation("New explanation")
+            .email("new@ucsb.edu")
+            .dateAdded(LocalDateTime.parse("2026-10-20T12:00:00"))
+            .build();
+
+    when(articleRepository.findById(1L)).thenReturn(Optional.of(existingArticle));
+    when(articleRepository.save(eq(updatedArticle))).thenReturn(updatedArticle);
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                put("/api/articles")
+                    .param("id", "1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(updatedArticle))
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    verify(articleRepository, times(1)).findById(1L);
+    verify(articleRepository, times(1)).save(updatedArticle);
+
+    assertEquals(
+        mapper.writeValueAsString(updatedArticle), response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void admin_cannot_update_nonexistent_article() throws Exception {
+    Article incomingArticle =
+        Article.builder()
+            .title("New Title")
+            .url("https://example.com/new")
+            .explanation("New explanation")
+            .email("student@ucsb.edu")
+            .dateAdded(LocalDateTime.parse("2026-10-20T12:00:00"))
+            .build();
+
+    when(articleRepository.findById(999L)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            put("/api/articles")
+                .param("id", "999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(incomingArticle))
+                .with(csrf()))
+        .andExpect(status().isNotFound());
+
+    verify(articleRepository, times(1)).findById(999L);
+  }
+
+  // DELETE /api/articles?id=... tests
+
+  @Test
+  public void logged_out_users_cannot_delete() throws Exception {
+    mockMvc
+        .perform(delete("/api/articles").param("id", "1").with(csrf()))
+        .andExpect(status().is(403));
+
+    verify(articleRepository, never()).findById(any());
+    verify(articleRepository, never()).delete(any());
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void regular_users_cannot_delete() throws Exception {
+    mockMvc
+        .perform(delete("/api/articles").param("id", "1").with(csrf()))
+        .andExpect(status().is(403));
+
+    verify(articleRepository, never()).findById(any());
+    verify(articleRepository, never()).delete(any());
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void admin_can_delete_an_article() throws Exception {
+    Article article =
+        Article.builder()
+            .id(15L)
+            .title("Test Article")
+            .url("https://example.com")
+            .explanation("Helpful resource")
+            .email("student@ucsb.edu")
+            .dateAdded(LocalDateTime.parse("2026-10-15T12:00:00"))
+            .build();
+
+    when(articleRepository.findById(eq(15L))).thenReturn(Optional.of(article));
+
+    MvcResult response =
+        mockMvc
+            .perform(delete("/api/articles").param("id", "15").with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    verify(articleRepository, times(1)).findById(15L);
+    verify(articleRepository, times(1)).delete(article);
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("Article with id 15 deleted", json.get("message"));
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void admin_tries_to_delete_nonexistent_article_and_gets_right_error_message()
+      throws Exception {
+    when(articleRepository.findById(eq(15L))).thenReturn(Optional.empty());
+
+    MvcResult response =
+        mockMvc
+            .perform(delete("/api/articles").param("id", "15").with(csrf()))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    verify(articleRepository, times(1)).findById(15L);
+    verify(articleRepository, never()).delete(any());
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("Article with id 15 not found", json.get("message"));
   }
 }
