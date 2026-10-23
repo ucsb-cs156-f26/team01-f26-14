@@ -158,7 +158,7 @@ public class UCSBOrganizationControllerTests extends ControllerTestCase {
             .orgCode("ZPR")
             .orgTranslationShort("ZETA PHI RHO")
             .orgTranslation("ZETA PHI RHO")
-            .inactive(false)
+            .inactive(true)
             .build();
 
     when(ucsbOrganizationRepository.save(eq(organization))).thenReturn(organization);
@@ -170,12 +170,12 @@ public class UCSBOrganizationControllerTests extends ControllerTestCase {
                     .param("orgCode", "ZPR")
                     .param("orgTranslationShort", "ZETA PHI RHO")
                     .param("orgTranslation", "ZETA PHI RHO")
-                    .param("inactive", "false")
+                    .param("inactive", "true")
                     .with(csrf()))
             .andExpect(status().isOk())
             .andReturn();
 
-    verify(ucsbOrganizationRepository).save(organization);
+    verify(ucsbOrganizationRepository, times(1)).save(organization);
     assertEquals(
         mapper.writeValueAsString(organization), response.getResponse().getContentAsString());
   }
