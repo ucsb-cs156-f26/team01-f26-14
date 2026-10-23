@@ -21,6 +21,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
@@ -214,6 +215,124 @@ public class UCSBDiningCommonsMenuItemControllerTests extends ControllerTestCase
 
     mockMvc
         .perform(get("/api/UCSBDiningCommonsMenuItem").param("id", "1"))
+        .andExpect(status().isForbidden());
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void admin_can_update_menu_item() throws Exception {
+
+    // arrange
+
+    UCSBDiningCommonsMenuItem originalItem =
+        UCSBDiningCommonsMenuItem.builder()
+            .id(1L)
+            .diningCommonsCode("ortega")
+            .name("Tofu Banh Mi Sandwich")
+            .station("Entree Specials")
+            .build();
+
+    UCSBDiningCommonsMenuItem incomingItem =
+        UCSBDiningCommonsMenuItem.builder()
+            .diningCommonsCode("portola")
+            .name("Veggie Burger")
+            .station("Grill")
+            .build();
+
+    UCSBDiningCommonsMenuItem expectedItem =
+        UCSBDiningCommonsMenuItem.builder()
+            .id(1L)
+            .diningCommonsCode("portola")
+            .name("Veggie Burger")
+            .station("Grill")
+            .build();
+
+    when(ucsbDiningCommonsMenuItemRepository.findById(1L)).thenReturn(Optional.of(originalItem));
+
+    // act
+    MvcResult response =
+        mockMvc
+            .perform(
+                put("/api/UCSBDiningCommonsMenuItem")
+                    .param("id", "1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(incomingItem))
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    // assert
+    verify(ucsbDiningCommonsMenuItemRepository, times(1)).findById(1L);
+    verify(ucsbDiningCommonsMenuItemRepository, times(1)).save(expectedItem);
+
+    String expectedJson = mapper.writeValueAsString(expectedItem);
+    String responseString = response.getResponse().getContentAsString();
+
+    assertEquals(expectedJson, responseString);
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void admin_cannot_update_nonexistent_menu_item() throws Exception {
+
+    // arrange
+
+    UCSBDiningCommonsMenuItem incomingItem =
+        UCSBDiningCommonsMenuItem.builder()
+            .diningCommonsCode("portola")
+            .name("Veggie Burger")
+            .station("Grill")
+            .build();
+
+    when(ucsbDiningCommonsMenuItemRepository.findById(123L)).thenReturn(Optional.empty());
+
+    // act
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                put("/api/UCSBDiningCommonsMenuItem")
+                    .param("id", "123")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(incomingItem))
+                    .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    // assert
+
+    verify(ucsbDiningCommonsMenuItemRepository, times(1)).findById(123L);
+
+    Map<String, Object> json = responseToJson(response);
+
+    assertEquals("EntityNotFoundException", json.get("type"));
+    assertEquals("UCSBDiningCommonsMenuItem with id 123 not found", json.get("message"));
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void regular_user_cannot_update_menu_item() throws Exception {
+
+    mockMvc
+        .perform(
+            put("/api/UCSBDiningCommonsMenuItem")
+                .param("id", "1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  public void logged_out_user_cannot_update_menu_item() throws Exception {
+
+    mockMvc
+        .perform(
+            put("/api/UCSBDiningCommonsMenuItem")
+                .param("id", "1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(csrf()))
         .andExpect(status().isForbidden());
   }
 }
