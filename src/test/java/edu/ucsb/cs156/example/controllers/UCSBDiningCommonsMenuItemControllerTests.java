@@ -16,6 +16,8 @@ import edu.ucsb.cs156.example.repositories.UserRepository;
 import edu.ucsb.cs156.example.testconfig.TestConfig;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -162,5 +164,56 @@ public class UCSBDiningCommonsMenuItemControllerTests extends ControllerTestCase
     String responseString = response.getResponse().getContentAsString();
 
     assertEquals(expectedJson, responseString);
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void logged_in_user_can_get_menu_item_by_id() throws Exception {
+
+    UCSBDiningCommonsMenuItem item = new UCSBDiningCommonsMenuItem();
+    item.setId(1L);
+    item.setDiningCommonsCode("ortega");
+    item.setName("Tofu Banh Mi Sandwich");
+    item.setStation("Entree Specials");
+
+    when(ucsbDiningCommonsMenuItemRepository.findById(1L)).thenReturn(Optional.of(item));
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/UCSBDiningCommonsMenuItem").param("id", "1"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    verify(ucsbDiningCommonsMenuItemRepository, times(1)).findById(1L);
+
+    assertEquals(mapper.writeValueAsString(item), response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void logged_in_user_gets_404_for_missing_menu_item() throws Exception {
+
+    when(ucsbDiningCommonsMenuItemRepository.findById(123L)).thenReturn(Optional.empty());
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/UCSBDiningCommonsMenuItem").param("id", "123"))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    verify(ucsbDiningCommonsMenuItemRepository, times(1)).findById(123L);
+
+    Map<String, Object> json = responseToJson(response);
+
+    assertEquals("EntityNotFoundException", json.get("type"));
+    assertEquals("UCSBDiningCommonsMenuItem with id 123 not found", json.get("message"));
+  }
+
+  @Test
+  public void logged_out_user_cannot_get_menu_item_by_id() throws Exception {
+
+    mockMvc
+        .perform(get("/api/UCSBDiningCommonsMenuItem").param("id", "1"))
+        .andExpect(status().isForbidden());
   }
 }
