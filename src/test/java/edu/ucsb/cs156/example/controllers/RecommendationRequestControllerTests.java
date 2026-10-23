@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import edu.ucsb.cs156.example.ControllerTestCase;
@@ -18,9 +19,12 @@ import edu.ucsb.cs156.example.testconfig.TestConfig;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
@@ -200,5 +204,178 @@ public class RecommendationRequestControllerTests extends ControllerTestCase {
     String expectedJson = mapper.writeValueAsString(request);
     String responseString = response.getResponse().getContentAsString();
     assertEquals(expectedJson, responseString);
+  }
+
+  // Tests for GET /api/RecommendationRequest?id=7
+
+  @Test
+  public void logged_out_users_cannot_get_by_id() throws Exception {
+    mockMvc.perform(get("/api/RecommendationRequest").param("id", "7")).andExpect(status().is(403));
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void logged_in_user_can_get_by_id_when_id_exists() throws Exception {
+    LocalDateTime dateRequested = LocalDateTime.parse("2026-10-21T10:00:00");
+    LocalDateTime dateNeeded = LocalDateTime.parse("2026-11-15T00:00:00");
+
+    RecommendationRequest request =
+        RecommendationRequest.builder()
+            .requesterEmail("student@example.com")
+            .professorEmail("professor@example.com")
+            .explanation("Graduate school recommendation")
+            .dateRequested(dateRequested)
+            .dateNeeded(dateNeeded)
+            .done(false)
+            .build();
+
+    when(recommendationRequestRepository.findById(eq(7L))).thenReturn(Optional.of(request));
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/RecommendationRequest").param("id", "7"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    verify(recommendationRequestRepository, times(1)).findById(eq(7L));
+
+    String expectedJson = mapper.writeValueAsString(request);
+    String responseString = response.getResponse().getContentAsString();
+    assertEquals(expectedJson, responseString);
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void logged_in_user_get_by_id_when_id_does_not_exist() throws Exception {
+    when(recommendationRequestRepository.findById(eq(7L))).thenReturn(Optional.empty());
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/RecommendationRequest").param("id", "7"))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    verify(recommendationRequestRepository, times(1)).findById(eq(7L));
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("EntityNotFoundException", json.get("type"));
+    assertEquals("RecommendationRequest with id 7 not found", json.get("message"));
+  }
+
+  // Tests for PUT /api/RecommendationRequest?id=7
+
+  @Test
+  public void logged_out_users_cannot_put() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/RecommendationRequest")
+                .param("id", "7")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void logged_in_regular_users_cannot_put() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/RecommendationRequest")
+                .param("id", "7")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void an_admin_user_can_update_a_recommendation_request() throws Exception {
+    RecommendationRequest existingRequest =
+        RecommendationRequest.builder()
+            .requesterEmail("old-student@example.com")
+            .professorEmail("old-professor@example.com")
+            .explanation("Old explanation")
+            .dateRequested(LocalDateTime.parse("2026-10-20T10:00:00"))
+            .dateNeeded(LocalDateTime.parse("2026-11-10T00:00:00"))
+            .done(false)
+            .build();
+
+    existingRequest.setId(7L);
+
+    RecommendationRequest incomingRequest =
+        RecommendationRequest.builder()
+            .requesterEmail("new-student@example.com")
+            .professorEmail("new-professor@example.com")
+            .explanation("Updated recommendation request")
+            .dateRequested(LocalDateTime.parse("2026-10-22T12:00:00"))
+            .dateNeeded(LocalDateTime.parse("2026-12-15T00:00:00"))
+            .done(true)
+            .build();
+
+    RecommendationRequest expectedRequest =
+        RecommendationRequest.builder()
+            .id(7L)
+            .requesterEmail("new-student@example.com")
+            .professorEmail("new-professor@example.com")
+            .explanation("Updated recommendation request")
+            .dateRequested(LocalDateTime.parse("2026-10-22T12:00:00"))
+            .dateNeeded(LocalDateTime.parse("2026-12-15T00:00:00"))
+            .done(true)
+            .build();
+
+    when(recommendationRequestRepository.findById(eq(7L))).thenReturn(Optional.of(existingRequest));
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                put("/api/RecommendationRequest")
+                    .param("id", "7")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(incomingRequest))
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    verify(recommendationRequestRepository, times(1)).findById(eq(7L));
+    verify(recommendationRequestRepository, times(1)).save(eq(existingRequest));
+
+    String expectedJson = mapper.writeValueAsString(expectedRequest);
+    String responseString = response.getResponse().getContentAsString();
+    assertEquals(expectedJson, responseString);
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void an_admin_user_cannot_update_a_nonexistent_recommendation_request() throws Exception {
+    when(recommendationRequestRepository.findById(eq(7L))).thenReturn(Optional.empty());
+
+    RecommendationRequest incomingRequest =
+        RecommendationRequest.builder()
+            .requesterEmail("student@example.com")
+            .professorEmail("professor@example.com")
+            .explanation("Updated explanation")
+            .dateRequested(LocalDateTime.parse("2026-10-22T12:00:00"))
+            .dateNeeded(LocalDateTime.parse("2026-12-15T00:00:00"))
+            .done(true)
+            .build();
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                put("/api/RecommendationRequest")
+                    .param("id", "7")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(incomingRequest))
+                    .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    verify(recommendationRequestRepository, times(1)).findById(eq(7L));
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("EntityNotFoundException", json.get("type"));
+    assertEquals("RecommendationRequest with id 7 not found", json.get("message"));
   }
 }
