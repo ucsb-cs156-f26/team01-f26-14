@@ -2,6 +2,7 @@
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import edu.ucsb.cs156.example.entities.MenuItemReview;
+import edu.ucsb.cs156.example.errors.EntityNotFoundException;
 import edu.ucsb.cs156.example.repositories.MenuItemReviewRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,8 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = &quot;MenuItemReview&quot;)
 @RequestMapping(&quot;/api/MenuItemReview&quot;)
 @RestController
-<span class="fc" id="L24">@Slf4j</span>
-<span class="fc" id="L25">public class MenuItemReviewController extends ApiController {</span>
+<span class="fc" id="L25">@Slf4j</span>
+<span class="fc" id="L26">public class MenuItemReviewController extends ApiController {</span>
 
   @Autowired MenuItemReviewRepository menuItemReviewRepository;
 
@@ -35,8 +36,26 @@ import org.springframework.web.bind.annotation.RestController;
   @PreAuthorize(&quot;hasRole('ROLE_USER')&quot;)
   @GetMapping(&quot;/all&quot;)
   public Iterable&lt;MenuItemReview&gt; allMenuItemReviews() {
-<span class="fc" id="L38">    Iterable&lt;MenuItemReview&gt; reviews = menuItemReviewRepository.findAll();</span>
-<span class="fc" id="L39">    return reviews;</span>
+<span class="fc" id="L39">    Iterable&lt;MenuItemReview&gt; reviews = menuItemReviewRepository.findAll();</span>
+<span class="fc" id="L40">    return reviews;</span>
+  }
+
+  /**
+   * Get a single menu item review by id
+   *
+   * @param id the id of the menu item review
+   * @return a MenuItemReview
+   */
+  @Operation(summary = &quot;Get a single menu item review&quot;)
+  @PreAuthorize(&quot;hasRole('ROLE_USER')&quot;)
+  @GetMapping(&quot;&quot;)
+  public MenuItemReview getById(@Parameter(name = &quot;id&quot;) @RequestParam Long id) {
+<span class="fc" id="L53">    MenuItemReview menuItemReview =</span>
+        menuItemReviewRepository
+<span class="fc" id="L55">            .findById(id)</span>
+<span class="fc" id="L56">            .orElseThrow(() -&gt; new EntityNotFoundException(MenuItemReview.class, id));</span>
+
+<span class="fc" id="L58">    return menuItemReview;</span>
   }
 
   /**
@@ -63,18 +82,18 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;comments&quot;) @RequestParam String comments)
       throws JsonProcessingException {
 
-<span class="fc" id="L66">    log.info(&quot;dateReviewed={}&quot;, dateReviewed);</span>
+<span class="fc" id="L85">    log.info(&quot;dateReviewed={}&quot;, dateReviewed);</span>
 
-<span class="fc" id="L68">    MenuItemReview menuItemReview = new MenuItemReview();</span>
-<span class="fc" id="L69">    menuItemReview.setItemId(itemId);</span>
-<span class="fc" id="L70">    menuItemReview.setReviewerEmail(reviewerEmail);</span>
-<span class="fc" id="L71">    menuItemReview.setStars(stars);</span>
-<span class="fc" id="L72">    menuItemReview.setDateReviewed(dateReviewed);</span>
-<span class="fc" id="L73">    menuItemReview.setComments(comments);</span>
+<span class="fc" id="L87">    MenuItemReview menuItemReview = new MenuItemReview();</span>
+<span class="fc" id="L88">    menuItemReview.setItemId(itemId);</span>
+<span class="fc" id="L89">    menuItemReview.setReviewerEmail(reviewerEmail);</span>
+<span class="fc" id="L90">    menuItemReview.setStars(stars);</span>
+<span class="fc" id="L91">    menuItemReview.setDateReviewed(dateReviewed);</span>
+<span class="fc" id="L92">    menuItemReview.setComments(comments);</span>
 
-<span class="fc" id="L75">    MenuItemReview savedMenuItemReview = menuItemReviewRepository.save(menuItemReview);</span>
+<span class="fc" id="L94">    MenuItemReview savedMenuItemReview = menuItemReviewRepository.save(menuItemReview);</span>
 
-<span class="fc" id="L77">    return savedMenuItemReview;</span>
+<span class="fc" id="L96">    return savedMenuItemReview;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.15.202606040825</span></div></body></html>
