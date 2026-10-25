@@ -11,6 +11,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import edu.ucsb.cs156.example.ControllerTestCase;
@@ -26,6 +27,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
@@ -96,6 +98,33 @@ public class MenuItemReviewControllerTests extends ControllerTestCase {
 
     verify(menuItemReviewRepository, never()).findById(any());
     verify(menuItemReviewRepository, never()).delete(any());
+  }
+
+  // Authorization tests for PUT /api/MenuItemReview?id=...
+
+  @Test
+  public void logged_out_users_cannot_put() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/MenuItemReview")
+                .param("id", "7")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(csrf()))
+        .andExpect(status().is(403));
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void regular_users_cannot_put() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/MenuItemReview")
+                .param("id", "7")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(csrf()))
+        .andExpect(status().is(403));
   }
 
   // Authorization tests for POST /api/MenuItemReview/post
@@ -328,6 +357,91 @@ public class MenuItemReviewControllerTests extends ControllerTestCase {
     verify(menuItemReviewRepository, never()).delete(any());
 
     Map<String, Object> json = responseToJson(response);
+    assertEquals("MenuItemReview with id 15 not found", json.get("message"));
+  }
+
+  // Tests for PUT /api/MenuItemReview?id=...
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void admin_can_update_an_existing_menu_item_review() throws Exception {
+    MenuItemReview originalReview =
+        MenuItemReview.builder()
+            .itemId(1L)
+            .reviewerEmail("student@example.com")
+            .stars(5)
+            .dateReviewed(LocalDateTime.parse("2026-10-21T10:00:00"))
+            .comments("Great food!")
+            .build();
+
+    MenuItemReview incomingReview =
+        MenuItemReview.builder()
+            .itemId(2L)
+            .reviewerEmail("other@example.com")
+            .stars(2)
+            .dateReviewed(LocalDateTime.parse("2026-10-22T11:00:00"))
+            .comments("Changed my mind")
+            .build();
+
+    MenuItemReview expectedReview =
+        MenuItemReview.builder()
+            .itemId(2L)
+            .reviewerEmail("other@example.com")
+            .stars(2)
+            .dateReviewed(LocalDateTime.parse("2026-10-22T11:00:00"))
+            .comments("Changed my mind")
+            .build();
+
+    when(menuItemReviewRepository.findById(eq(1L))).thenReturn(Optional.of(originalReview));
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                put("/api/MenuItemReview")
+                    .param("id", "1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(incomingReview))
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    verify(menuItemReviewRepository, times(1)).findById(1L);
+    verify(menuItemReviewRepository, times(1)).save(expectedReview);
+
+    String expectedJson = mapper.writeValueAsString(expectedReview);
+    String responseString = response.getResponse().getContentAsString();
+    assertEquals(expectedJson, responseString);
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void admin_cannot_update_nonexistent_menu_item_review() throws Exception {
+    MenuItemReview incomingReview =
+        MenuItemReview.builder()
+            .itemId(2L)
+            .reviewerEmail("other@example.com")
+            .stars(2)
+            .dateReviewed(LocalDateTime.parse("2026-10-22T11:00:00"))
+            .comments("Changed my mind")
+            .build();
+
+    when(menuItemReviewRepository.findById(eq(15L))).thenReturn(Optional.empty());
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                put("/api/MenuItemReview")
+                    .param("id", "15")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(incomingReview))
+                    .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    verify(menuItemReviewRepository, times(1)).findById(15L);
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("EntityNotFoundException", json.get("type"));
     assertEquals("MenuItemReview with id 15 not found", json.get("message"));
   }
 }
