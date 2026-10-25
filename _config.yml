@@ -23,4 +23,4 @@ repo_name: "TBD"
 repo: ucsb-cs156-f26/team01-f26-14
 owner: ucsb-cs156-f26
 repo_name: team01-f26-14
-pull_requests: [{"author":{"id":"U_kgDODgpWGw","is_bot":false,"login":"VishwathS","name":""},"headRefName":"fix-readme-deployment-links","number":70,"title":"Update README title, deployment links, and team table","url":"https://github.com/ucsb-cs156-f26/team01-f26-14/pull/70"}]
+pull_requests: []
