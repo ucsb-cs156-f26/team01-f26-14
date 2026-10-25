@@ -1,26 +1,20 @@
-# STARTER-team01
+# team01-f26-14
 
-Instructions: <https://ucsb-cs156.github.io/s26/lab/team01.html>
-
-TODO: change heading above to your repo name, e.g. `# team01-s26-17`
-
-TODO: Add a link to the deployed Dokku app for your team here, e.g.
+Instructions: <https://ucsb-cs156.github.io/f26/lab/team01.html>
 
 Deployments:
 
 * Prod: <https://team01.dokku-14.cs.ucsb.edu>
 * QA: <https://team01-qa.dokku-14.cs.ucsb.edu>
 
-TODO: Fill in this table with correct information. 
-
-| Table                     | Name         | Github Id |
-|---------------------------|--------------|-----------|
-| UCSBDiningCommonsMenuItem |              |           |
-| UCSBOrganization          |              |           |
-| RecommendationRequest     |              |           |
-| MenuItemReview            |              |           |
-| HelpRequest               |              |           |
-| Articles                  |              |           |
+| Table                     | Name                      | Github Id                 |
+|---------------------------|---------------------------|---------------------------|
+| UCSBDiningCommonsMenuItem | Heloisa Alcantara Furtado | HeloisaAlcantaraFurtado04 |
+| UCSBOrganization          | Aylin Lopez               | aylin268                  |
+| RecommendationRequest     | Ryan Ramos-Noriega        | R-R-R-N-U-C-S-B           |
+| MenuItemReview            | Krithi Haresamudra        | krithih                   |
+| HelpRequest               | Raymundo De Los Santos    | dlssantosray              |
+| Articles                  | Vishwath Shankar          | VishwathS                 |
 
 Remember though, that in spite of these initial  assignments, it is still
 a team project.  Please help other team members to finish their work
