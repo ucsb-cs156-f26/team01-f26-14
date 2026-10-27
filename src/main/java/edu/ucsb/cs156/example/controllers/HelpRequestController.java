@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -128,5 +131,35 @@ public class HelpRequestController extends ApiController {
     helpRequest.setSolved(incoming.getSolved());
 
     return helpRequestRepository.save(helpRequest);
+  }
+
+  /**
+   * Delete a help request by ID.
+   *
+   * @param id ID of the help request
+   * @return confirmation message
+   */
+  @Operation(
+      summary = "Delete a single help request",
+      description =
+          "Deletes a HelpRequest by ID. Returns 200 with 'record {id} deleted' "
+              + "or 404 with 'record {id} not found'.")
+  @PreAuthorize("hasRole('ROLE_ADMIN')")
+  @DeleteMapping("")
+  public ResponseEntity<String> deleteHelpRequest(
+      @Parameter(name = "id", description = "ID of the HelpRequest to delete") @RequestParam
+          Long id) {
+
+    try {
+      helpRequestRepository
+          .findById(id)
+          .orElseThrow(() -> new EntityNotFoundException(HelpRequest.class, id));
+    } catch (EntityNotFoundException e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("record " + id + " not found");
+    }
+
+    helpRequestRepository.deleteById(id);
+
+    return ResponseEntity.ok("record " + id + " deleted");
   }
 }

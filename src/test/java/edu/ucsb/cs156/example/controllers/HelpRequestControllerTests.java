@@ -276,4 +276,42 @@ public class HelpRequestControllerTests extends ControllerTestCase {
     assertEquals("EntityNotFoundException", json.get("type"));
     assertEquals("HelpRequest with id 999 not found", json.get("message"));
   }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void an_admin_user_can_delete_an_existing_help_request() throws Exception {
+
+    HelpRequest request = HelpRequest.builder().id(7L).build();
+
+    when(helpRequestRepository.findById(eq(7L))).thenReturn(java.util.Optional.of(request));
+
+    MvcResult response =
+        mockMvc
+            .perform(delete("/api/HelpRequest").param("id", "7").with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    verify(helpRequestRepository, times(1)).findById(eq(7L));
+    verify(helpRequestRepository, times(1)).deleteById(eq(7L));
+
+    assertEquals("record 7 deleted", response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(roles = {"ADMIN", "USER"})
+  @Test
+  public void an_admin_user_cannot_delete_a_nonexistent_help_request() throws Exception {
+
+    when(helpRequestRepository.findById(eq(999L))).thenReturn(java.util.Optional.empty());
+
+    MvcResult response =
+        mockMvc
+            .perform(delete("/api/HelpRequest").param("id", "999").with(csrf()))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    verify(helpRequestRepository, times(1)).findById(eq(999L));
+    verify(helpRequestRepository, never()).deleteById(any(Long.class));
+
+    assertEquals("record 999 not found", response.getResponse().getContentAsString());
+  }
 }
