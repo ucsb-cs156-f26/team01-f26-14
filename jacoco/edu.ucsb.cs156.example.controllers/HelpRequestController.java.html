@@ -68,28 +68,28 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;solved&quot;) @RequestParam boolean solved) {
 
 <span class="fc" id="L70">    HelpRequest helpRequest = new HelpRequest();</span>
-<span class="fc" id="L71">    helpRequest.setRequesterEmail(requesterEmail);</span>
-<span class="fc" id="L72">    helpRequest.setTeamId(teamId);</span>
-<span class="fc" id="L73">    helpRequest.setTableOrBreakoutRoom(tableOrBreakoutRoom);</span>
-<span class="fc" id="L74">    helpRequest.setRequestTime(requestTime);</span>
-<span class="fc" id="L75">    helpRequest.setExplanation(explanation);</span>
-<span class="fc" id="L76">    helpRequest.setSolved(solved);</span>
 
-<span class="fc" id="L78">    HelpRequest savedHelpRequest = helpRequestRepository.save(helpRequest);</span>
+<span class="fc" id="L72">    helpRequest.setRequesterEmail(requesterEmail);</span>
+<span class="fc" id="L73">    helpRequest.setTeamId(teamId);</span>
+<span class="fc" id="L74">    helpRequest.setTableOrBreakoutRoom(tableOrBreakoutRoom);</span>
+<span class="fc" id="L75">    helpRequest.setRequestTime(requestTime);</span>
+<span class="fc" id="L76">    helpRequest.setExplanation(explanation);</span>
+<span class="fc" id="L77">    helpRequest.setSolved(solved);</span>
 
-<span class="fc" id="L80">    return savedHelpRequest;</span>
+<span class="fc" id="L79">    return helpRequestRepository.save(helpRequest);</span>
   }
 
   /**
    * Get a single help request by id.
    *
    * @param id the id of the help request
-   * @return a HelpRequest
+   * @return the help request
    */
   @Operation(summary = &quot;Get a single help request&quot;)
   @PreAuthorize(&quot;hasRole('ROLE_USER')&quot;)
   @GetMapping(&quot;&quot;)
   public HelpRequest getById(@Parameter(name = &quot;id&quot;) @RequestParam Long id) {
+
 <span class="fc" id="L93">    HelpRequest helpRequest =</span>
         helpRequestRepository
 <span class="fc" id="L95">            .findById(id)</span>
