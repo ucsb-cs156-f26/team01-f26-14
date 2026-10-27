@@ -86,7 +86,7 @@ public class HelpRequestControllerTests extends ControllerTestCase {
             .tableOrBreakoutRoom("Table 3")
             .requestTime(requestTime)
             .explanation("Need help debugging Java")
-            .solved(false)
+            .solved(true)
             .build();
 
     when(helpRequestRepository.save(eq(request))).thenReturn(request);
@@ -100,7 +100,7 @@ public class HelpRequestControllerTests extends ControllerTestCase {
                     .param("tableOrBreakoutRoom", "Table 3")
                     .param("requestTime", "2026-10-21T10:00:00")
                     .param("explanation", "Need help debugging Java")
-                    .param("solved", "false")
+                    .param("solved", "true")
                     .with(csrf()))
             .andExpect(status().isOk())
             .andReturn();
