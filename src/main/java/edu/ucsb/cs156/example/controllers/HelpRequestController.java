@@ -68,6 +68,7 @@ public class HelpRequestController extends ApiController {
       @Parameter(name = "solved") @RequestParam boolean solved) {
 
     HelpRequest helpRequest = new HelpRequest();
+
     helpRequest.setRequesterEmail(requesterEmail);
     helpRequest.setTeamId(teamId);
     helpRequest.setTableOrBreakoutRoom(tableOrBreakoutRoom);
@@ -75,21 +76,20 @@ public class HelpRequestController extends ApiController {
     helpRequest.setExplanation(explanation);
     helpRequest.setSolved(solved);
 
-    HelpRequest savedHelpRequest = helpRequestRepository.save(helpRequest);
-
-    return savedHelpRequest;
+    return helpRequestRepository.save(helpRequest);
   }
 
   /**
    * Get a single help request by id.
    *
    * @param id the id of the help request
-   * @return a HelpRequest
+   * @return the help request
    */
   @Operation(summary = "Get a single help request")
   @PreAuthorize("hasRole('ROLE_USER')")
   @GetMapping("")
   public HelpRequest getById(@Parameter(name = "id") @RequestParam Long id) {
+
     HelpRequest helpRequest =
         helpRequestRepository
             .findById(id)
