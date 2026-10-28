@@ -134,32 +134,22 @@ public class HelpRequestController extends ApiController {
   }
 
   /**
-   * Delete a help request by ID.
+   * Delete a single help request.
    *
-   * @param id ID of the help request
-   * @return confirmation message
+   * @param id the id of the help request to delete
+   * @return a plain-text message indicating whether the record was deleted or not found
    */
-  @Operation(
-      summary = "Delete a single help request",
-      description =
-          "Deletes a HelpRequest by ID. Returns 200 with 'record {id} deleted' "
-              + "or 404 with 'record {id} not found'.")
+  @Operation(summary = "Delete a single help request by id")
   @PreAuthorize("hasRole('ROLE_ADMIN')")
   @DeleteMapping("")
   public ResponseEntity<String> deleteHelpRequest(
-      @Parameter(name = "id", description = "ID of the HelpRequest to delete") @RequestParam
-          Long id) {
+      @Parameter(name = "id", description = "ID of the help request") @RequestParam Long id) {
 
-    try {
-      helpRequestRepository
-          .findById(id)
-          .orElseThrow(() -> new EntityNotFoundException(HelpRequest.class, id));
-    } catch (EntityNotFoundException e) {
+    if (!helpRequestRepository.existsById(id)) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body("record " + id + " not found");
     }
 
     helpRequestRepository.deleteById(id);
-
     return ResponseEntity.ok("record " + id + " deleted");
   }
 }

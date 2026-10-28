@@ -277,13 +277,27 @@ public class HelpRequestControllerTests extends ControllerTestCase {
     assertEquals("HelpRequest with id 999 not found", json.get("message"));
   }
 
+  // Tests for DELETE /api/HelpRequest?id=7
+
+  @Test
+  public void logged_out_users_cannot_delete() throws Exception {
+    mockMvc
+        .perform(delete("/api/HelpRequest").param("id", "7").with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void logged_in_regular_users_cannot_delete() throws Exception {
+    mockMvc
+        .perform(delete("/api/HelpRequest").param("id", "7").with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
   @WithMockUser(roles = {"ADMIN", "USER"})
   @Test
-  public void an_admin_user_can_delete_an_existing_help_request() throws Exception {
-
-    HelpRequest request = HelpRequest.builder().id(7L).build();
-
-    when(helpRequestRepository.findById(eq(7L))).thenReturn(java.util.Optional.of(request));
+  public void an_admin_user_can_delete_a_help_request() throws Exception {
+    when(helpRequestRepository.existsById(eq(7L))).thenReturn(true);
 
     MvcResult response =
         mockMvc
@@ -291,27 +305,28 @@ public class HelpRequestControllerTests extends ControllerTestCase {
             .andExpect(status().isOk())
             .andReturn();
 
-    verify(helpRequestRepository, times(1)).findById(eq(7L));
+    verify(helpRequestRepository, times(1)).existsById(eq(7L));
     verify(helpRequestRepository, times(1)).deleteById(eq(7L));
 
     assertEquals("record 7 deleted", response.getResponse().getContentAsString());
+    assertEquals("text/plain;charset=UTF-8", response.getResponse().getContentType());
   }
 
   @WithMockUser(roles = {"ADMIN", "USER"})
   @Test
   public void an_admin_user_cannot_delete_a_nonexistent_help_request() throws Exception {
-
-    when(helpRequestRepository.findById(eq(999L))).thenReturn(java.util.Optional.empty());
+    when(helpRequestRepository.existsById(eq(7L))).thenReturn(false);
 
     MvcResult response =
         mockMvc
-            .perform(delete("/api/HelpRequest").param("id", "999").with(csrf()))
+            .perform(delete("/api/HelpRequest").param("id", "7").with(csrf()))
             .andExpect(status().isNotFound())
             .andReturn();
 
-    verify(helpRequestRepository, times(1)).findById(eq(999L));
-    verify(helpRequestRepository, never()).deleteById(any(Long.class));
+    verify(helpRequestRepository, times(1)).existsById(eq(7L));
+    verify(helpRequestRepository, never()).deleteById(eq(7L));
 
-    assertEquals("record 999 not found", response.getResponse().getContentAsString());
+    assertEquals("record 7 not found", response.getResponse().getContentAsString());
+    assertEquals("text/plain;charset=UTF-8", response.getResponse().getContentType());
   }
 }
